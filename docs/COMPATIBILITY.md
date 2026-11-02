@@ -37,6 +37,7 @@ mod-only 不写上述设置，不带公共签名、DLL、mods.txt 或 shared 文
 - 弱对象数组使用下标访问，规避此版本 `ForEach` 对 `WeakObjectProperty` 的 GetParam 不支持问题。
 - 音乐处理仅移除本项目目标；仍有普通敌人或特殊敌人时，不结束音乐战斗状态。
 - ModMenu 与 UEHelpers 随 Mod 私有打包，模块名分别隔离为 `PBZDummyMenu.*` 和 `PBZTrainingDummy.UEHelpers`，不会替换其他 Mod 的 shared 库。
+- 菜单模块隔离仅修改 require/preload 的模块路径字符串，不修改库内部 `ModMenu` 变量；自动化检查实际执行菜单库和整个入口的加载，验证 F8 注册，避免仅语法检查漏过启动错误。
 - 不写固定安装路径，不修改其他 Mod，不接管 UE4SS 加载入口。整合包与已有运行库通过两个安装包分开。
 
 API 检查不能确认原生 ABI、签名和资产结构完全一致。新游戏 build 或新 UE4SS 版本必须重新进行游戏内验证；仅通过 CI 不能声明支持。

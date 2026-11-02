@@ -1,14 +1,14 @@
 --[[
-  PBZDummyMenu.bundle.lua — generated release bundle. Do not edit.
+  ModMenu.bundle.lua — generated release bundle. Do not edit.
 
   Build: npm run bundle
-  Install as: Mods/shared/ModMenu/PBZDummyMenu.lua
+  Install as: Mods/shared/ModMenu/ModMenu.lua
   Hosts: require("PBZDummyMenu.ModMenu")
 ]]
 -- store/json.lua
 package.preload["PBZDummyMenu.store.json"] = function(...)
 --[[
-  PBZDummyMenu.store.json — JSON-safe encode/decode for host config.json.
+  ModMenu.store.json — JSON-safe encode/decode for host config.json.
 ]]
 
 local M = {}
@@ -351,7 +351,7 @@ end
 -- store/paths.lua
 package.preload["PBZDummyMenu.store.paths"] = function(...)
 --[[
-  PBZDummyMenu.store.paths — resolve Mods/<id>/config.json for the host store.
+  ModMenu.store.paths — resolve Mods/<id>/config.json for the host store.
 ]]
 
 local M = {}
@@ -445,12 +445,12 @@ end
 -- store/init.lua
 package.preload["PBZDummyMenu.store.init"] = function(...)
 --[[
-  PBZDummyMenu.store — host-owned JSON key/value store.
+  ModMenu.store — host-owned JSON key/value store.
 
-  Public name is PBZDummyMenu.ConfigManager (facade + ConfigManager.lua shim):
+  Public name is ModMenu.ConfigManager (facade + ConfigManager.lua shim):
 
     local ModMenu = require("PBZDummyMenu.ModMenu")
-    local ConfigManager = PBZDummyMenu.ConfigManager
+    local ConfigManager = ModMenu.ConfigManager
     -- or: require("PBZDummyMenu.ConfigManager") / require("PBZDummyMenu.core.store")
 
     ConfigManager.Init({
@@ -462,7 +462,7 @@ package.preload["PBZDummyMenu.store.init"] = function(...)
 
   JSON-safe values only (bool, number, string, table, nil). Hosts still own
   when to Set and how to apply. Unknown file keys are kept.
-  This module must not require PBZDummyMenu.ModMenu (no cycle).
+  This module must not require ModMenu.ModMenu (no cycle).
 ]]
 
 local Json = require("PBZDummyMenu.store.json")
@@ -739,7 +739,7 @@ end
 -- core/util.lua
 package.preload["PBZDummyMenu.core.util"] = function(...)
 --[[
-  PBZDummyMenu.core.util — shared helpers (logging, validity, strings, value keys).
+  ModMenu.core.util — shared helpers (logging, validity, strings, value keys).
 ]]
 
 local M = {}
@@ -879,7 +879,7 @@ end
 -- core/theme.lua
 package.preload["PBZDummyMenu.core.theme"] = function(...)
 --[[
-  PBZDummyMenu.core.theme — author-facing color presets.
+  ModMenu.core.theme — author-facing color presets.
 
   Init({ theme = "light" | "dark", colors = { panelBg = { R,G,B,A }, ... } }).
   light = current ModMenu look (dark panel, light fields).
@@ -1111,7 +1111,7 @@ end
 -- core/umg.lua
 package.preload["PBZDummyMenu.core.umg"] = function(...)
 --[[
-  PBZDummyMenu.core.umg — StaticConstructObject helpers and common UMG controls.
+  ModMenu.core.umg — StaticConstructObject helpers and common UMG controls.
 ]]
 
 local Util = require("PBZDummyMenu.core.util")
@@ -1516,7 +1516,7 @@ end
 -- core/shared.lua
 package.preload["PBZDummyMenu.core.shared"] = function(...)
 --[[
-  PBZDummyMenu.core.shared — ModRef shared variables (process-wide, survive hot-reload).
+  ModMenu.core.shared — ModRef shared variables (process-wide, survive hot-reload).
 
   Scalars only. Do not store tables or functions.
 ]]
@@ -1525,7 +1525,7 @@ local M = {}
 
 M.NEXT_INSTANCE = "PBZDummyMenu.NextInstanceId"
 M.OPEN_COUNT = "PBZDummyMenu.OpenCount"
---- Claim map: PBZDummyMenu.KeyClaim.<keyHint> -> instanceTag (string). Warn-only on clash.
+--- Claim map: ModMenu.KeyClaim.<keyHint> -> instanceTag (string). Warn-only on clash.
 M.KEY_CLAIM_PREFIX = "PBZDummyMenu.KeyClaim."
 --- Stashed PlayerController input flags while any ModMenu is open.
 M.INPUT_SAVED = "PBZDummyMenu.InputSaved"
@@ -1573,7 +1573,7 @@ end
 -- core/config.lua
 package.preload["PBZDummyMenu.core.config"] = function(...)
 --[[
-  PBZDummyMenu.core.config — default Init table, option merge, small normalizers.
+  ModMenu.core.config — default Init table, option merge, small normalizers.
 ]]
 
 local Theme = require("PBZDummyMenu.core.theme")
@@ -1949,7 +1949,7 @@ end
 -- core/instance.lua
 package.preload["PBZDummyMenu.core.instance"] = function(...)
 --[[
-  PBZDummyMenu.core.instance — per-Lua-state identity, FName suffix, key claims, open-count hold.
+  ModMenu.core.instance — per-Lua-state identity, FName suffix, key claims, open-count hold.
 ]]
 
 local Shared = require("PBZDummyMenu.core.shared")
@@ -2093,7 +2093,7 @@ end
 -- core/inputmode.lua
 package.preload["PBZDummyMenu.core.inputmode"] = function(...)
 --[[
-  PBZDummyMenu.core.inputmode — PlayerController + Slate while a shell is open.
+  ModMenu.core.inputmode — PlayerController + Slate while a shell is open.
 
   Keys stay in core/input.lua. This module owns GameAndUI / GameOnly,
   software cursor flags, opt-in look-ignore, and reclaim after game UI steals focus.
@@ -2345,7 +2345,7 @@ end
 -- core/cursor.lua
 package.preload["PBZDummyMenu.core.cursor"] = function(...)
 --[[
-  PBZDummyMenu.core.cursor — opt-in ModMenu-owned cursor overlay.
+  ModMenu.core.cursor — opt-in ModMenu-owned cursor overlay.
 
   Init({ cursorMode = "modmenu" }) draws a HitTestInvisible pointer above the
   shell while open. Default remains "engine" (PlayerController / GameAndUI only).
@@ -3171,13 +3171,13 @@ end
 -- core/input.lua
 package.preload["PBZDummyMenu.core.input"] = function(...)
 --[[
-  PBZDummyMenu.core.input — toggle + LMB click latch.
+  ModMenu.core.input — toggle + LMB click latch.
 
   Backends (Init inputBackend; no auto-detect):
     ue4ss  — RegisterKeyBind (default; games where UE4SS keybinds fire)
     engine — poll APlayerController:IsInputKeyDown (games where they do not)
 
-  Hosts call PBZDummyMenu.Init only. This module owns implementation.
+  Hosts call ModMenu.Init only. This module owns implementation.
 ]]
 
 local UEHelpers = require("PBZTrainingDummy.UEHelpers")
@@ -3716,7 +3716,7 @@ end
 -- core/options.lua
 package.preload["PBZDummyMenu.core.options"] = function(...)
 --[[
-  PBZDummyMenu.core.options — dropdown option normalize / filter helpers.
+  ModMenu.core.options — dropdown option normalize / filter helpers.
 ]]
 
 local Util = require("PBZDummyMenu.core.util")
@@ -3785,7 +3785,7 @@ end
 -- core/dockmath.lua
 package.preload["PBZDummyMenu.core.dockmath"] = function(...)
 --[[
-  PBZDummyMenu.core.dockmath — viewport fractions for a docked panel. No UMG.
+  ModMenu.core.dockmath — viewport fractions for a docked panel. No UMG.
 ]]
 
 local M = {}
@@ -5550,7 +5550,7 @@ end
 -- shell/session.lua
 package.preload["PBZDummyMenu.shell.session"] = function(...)
 --[[
-  PBZDummyMenu.shell.session — mutable per-Lua-state shell fields shared by dock/build/lifecycle.
+  ModMenu.shell.session — mutable per-Lua-state shell fields shared by dock/build/lifecycle.
 ]]
 
 local Util = require("PBZDummyMenu.core.util")
@@ -5650,7 +5650,7 @@ end
 -- shell/dock.lua
 package.preload["PBZDummyMenu.shell.dock"] = function(...)
 --[[
-  PBZDummyMenu.shell.dock — percent layout and dock chrome dropdown.
+  ModMenu.shell.dock — percent layout and dock chrome dropdown.
 
   Init({ dock }) is the author default. The header picker offers Left / Right /
   Top / Bottom for every host. Same rectangle, rotated 90° on top/bottom.
@@ -5759,7 +5759,7 @@ end
 -- shell/close.lua
 package.preload["PBZDummyMenu.shell.close"] = function(...)
 --[[
-  PBZDummyMenu.shell.close — title-row Close button. Same path as the toggle key.
+  ModMenu.shell.close — title-row Close button. Same path as the toggle key.
 ]]
 
 local Input = require("PBZDummyMenu.core.input")
@@ -5795,7 +5795,7 @@ end
 -- shell/collapse.lua
 package.preload["PBZDummyMenu.shell.collapse"] = function(...)
 --[[
-  PBZDummyMenu.shell.collapse — collapsible section headers.
+  ModMenu.shell.collapse — collapsible section headers.
 
   Opt-in via Register({ collapsible = true, collapsed = true? }).
   Session remembers open/closed per section id (not saved to disk).
@@ -6077,7 +6077,7 @@ end
 -- shell/tabs.lua
 package.preload["PBZDummyMenu.shell.tabs"] = function(...)
 --[[
-  PBZDummyMenu.shell.tabs — optional top-level tab strip.
+  ModMenu.shell.tabs — optional top-level tab strip.
 
   Init({ tabs = { "Cheats", "Give" } }) + Register({ tab = "Cheats", ... }).
   Omit tabs = current single-scroll menu.
@@ -6347,7 +6347,7 @@ end
 -- shell/confirm.lua
 package.preload["PBZDummyMenu.shell.confirm"] = function(...)
 --[[
-  PBZDummyMenu.shell.confirm — in-shell modal for destructive actions.
+  ModMenu.shell.confirm — in-shell modal for destructive actions.
 
   Covers the docked panel (same canvas, higher Z). Blocks other widget polls
   while open. Cancel / close menu runs nothing. Confirm runs onConfirm once.
@@ -6702,7 +6702,7 @@ end
 -- shell/build.lua
 package.preload["PBZDummyMenu.shell.build"] = function(...)
 --[[
-  PBZDummyMenu.shell.build — construct / destroy the UMG tree and rebuild section content.
+  ModMenu.shell.build — construct / destroy the UMG tree and rebuild section content.
 ]]
 
 local UEHelpers = require("PBZTrainingDummy.UEHelpers")
@@ -7022,7 +7022,7 @@ end
 -- shell/lifecycle.lua
 package.preload["PBZDummyMenu.shell.lifecycle"] = function(...)
 --[[
-  PBZDummyMenu.shell.lifecycle — open / close / toggle, poll loop, ClientRestart.
+  ModMenu.shell.lifecycle — open / close / toggle, poll loop, ClientRestart.
 ]]
 
 local UEHelpers = require("PBZTrainingDummy.UEHelpers")
@@ -7152,7 +7152,7 @@ function M.StartPoll(S)
     S.pollHandle = LoopInGameThreadWithDelay(Session.POLL_MS, S.pollFn)
 end
 
---- Host gate for opening (key toggle + PBZDummyMenu.Open). Close is never gated.
+--- Host gate for opening (key toggle + ModMenu.Open). Close is never gated.
 ---@return boolean allowed
 ---@return string|nil reason
 function M.EvaluateCanOpen(S)
@@ -7307,7 +7307,7 @@ end
 -- shell/registry.lua
 package.preload["PBZDummyMenu.shell.registry"] = function(...)
 --[[
-  PBZDummyMenu.shell.registry — sections, values, Register, Get/Set, live widget apply.
+  ModMenu.shell.registry — sections, values, Register, Get/Set, live widget apply.
 ]]
 
 local Util = require("PBZDummyMenu.core.util")
@@ -7668,18 +7668,18 @@ end
 return M
 end
 
--- PBZDummyMenu.lua (entry)
+-- ModMenu.lua (entry)
 --[[
   ModMenu — shared in-game UMG settings shell for UE4SS Lua mods.
 
   Usage:
     local ModMenu = require("PBZDummyMenu.ModMenu")
-    PBZDummyMenu.Init({ title = "My Mod Menu", key = Key.F6 }) -- ignoreLook = true to lock camera
+    ModMenu.Init({ title = "My Mod Menu", key = Key.F6 }) -- ignoreLook = true to lock camera
     -- inputBackend = "engine" when RegisterKeyBind does not fire (e.g. Code Vein 2)
     -- cursorMode = "modmenu" when the game suppresses the engine cursor
     -- pointerMode = "touch" on handheld (checkbox buttons + ignore delayed latch)
     -- showClose = false to hide the title-row Close button (on by default)
-    PBZDummyMenu.Register({
+    ModMenu.Register({
       id = "MyMod",
       title = "My Mod",
       items = {
@@ -7697,14 +7697,14 @@ end
             { type = "number", id = "count", label = "Count", default = 1, min = 1, integer = true },
             { type = "button", id = "add", label = "Add Selected",
               onClick = function()
-                local n = PBZDummyMenu.Get("MyMod", "count")
+                local n = ModMenu.Get("MyMod", "count")
               end },
           }},
         { type = "label", label = "Hint text" },
         { type = "separator" },
       },
     })
-    PBZDummyMenu.SetDock("left") -- or Init({ dock = "left"|"right"|"top"|"bottom" })
+    ModMenu.SetDock("left") -- or Init({ dock = "left"|"right"|"top"|"bottom" })
 
   Per-mod shell: each Lua mod that Init()s gets its own panel + hotkey.
   UObject names / viewport Z are allocated via ModRef shared vars so two mods
@@ -7716,8 +7716,8 @@ end
   Nested fold: { type = "fold", id, label, collapsed = true, items = { ... } }.
   Theme (authors): Init({ theme = "light" | "dark" }) — light is the current look.
   Tabs: Init({ tabs = { "Cheats", "Give" } }) + Register({ tab = "Cheats", ... }).
-  Confirm: button { confirm = { title, message } } or PBZDummyMenu.Confirm({ onConfirm = fn }).
-  Persistence: optional PBZDummyMenu.ConfigManager (Init / Get / Set). Host-owned; not auto-wired.
+  Confirm: button { confirm = { title, message } } or ModMenu.Confirm({ onConfirm = fn }).
+  Persistence: optional ModMenu.ConfigManager (Init / Get / Set). Host-owned; not auto-wired.
 
   Internals: core/ helpers + widgets/ registry (see README.md).
 ]]
@@ -7737,7 +7737,7 @@ local Confirm = require("PBZDummyMenu.shell.confirm")
 local ConfigStore = require("PBZDummyMenu.store.init")
 
 local ModMenu = {}
-PBZDummyMenu.ConfigManager = ConfigStore
+ModMenu.ConfigManager = ConfigStore
 
 local Debug = Util.Debug
 
@@ -7832,7 +7832,7 @@ end
 
 --- Initialize / configure this mod's shell. Safe to call multiple times.
 ---@param opts table|nil
-function PBZDummyMenu.Init(opts)
+function ModMenu.Init(opts)
     Config.ApplyInit(config, opts, { instanceUnlocked = Instance.GetTag() == nil })
     Util.SetDebug(config.debug == true)
     Instance.Ensure(config)
@@ -7870,36 +7870,36 @@ end
 
 --- Process-wide instance tag used in UObject names (e.g. ModMenu_Root_TestMod_1).
 ---@return string|nil
-function PBZDummyMenu.GetInstanceId()
+function ModMenu.GetInstanceId()
     return Instance.GetTag()
 end
 
 ---@return integer|nil
-function PBZDummyMenu.GetInstanceSerial()
+function ModMenu.GetInstanceSerial()
     return Instance.GetSerial()
 end
 
 --- Pin the panel to an edge (session only; no free drag).
 ---@param side string "left"|"right"|"top"|"bottom"
-function PBZDummyMenu.SetDock(side)
+function ModMenu.SetDock(side)
     Dock.Set(S, side)
 end
 
 ---@return string
-function PBZDummyMenu.GetDock()
+function ModMenu.GetDock()
     return config.dock
 end
 
 --- Switch the active tab (Init tabs). Session-only; rebuilds if the menu is open.
 ---@param name string
 ---@return boolean
-function PBZDummyMenu.SetTab(name)
+function ModMenu.SetTab(name)
     return Tabs.Select(S, name)
 end
 
 --- Current tab name, or nil when Init did not set tabs.
 ---@return string|nil
-function PBZDummyMenu.GetTab()
+function ModMenu.GetTab()
     if not Tabs.Enabled(S) then
         return nil
     end
@@ -7909,9 +7909,9 @@ end
 
 --- Register or replace a mod section.
 ---@param section table
-function PBZDummyMenu.Register(section)
+function ModMenu.Register(section)
     if not initialized then
-        PBZDummyMenu.Init({})
+        ModMenu.Init({})
     end
     Registry.Register(S, section)
 end
@@ -7919,7 +7919,7 @@ end
 ---@param sectionId string
 ---@param itemId string
 ---@return any
-function PBZDummyMenu.Get(sectionId, itemId)
+function ModMenu.Get(sectionId, itemId)
     return Registry.Get(S, sectionId, itemId)
 end
 
@@ -7928,7 +7928,7 @@ end
 ---@param itemId string
 ---@param text string
 ---@return boolean
-function PBZDummyMenu.SetLabel(sectionId, itemId, text)
+function ModMenu.SetLabel(sectionId, itemId, text)
     return Registry.SetLabel(S, sectionId, itemId, text)
 end
 
@@ -7937,7 +7937,7 @@ end
 ---@param itemId string
 ---@param text string
 ---@return boolean
-function PBZDummyMenu.SetButtonLabel(sectionId, itemId, text)
+function ModMenu.SetButtonLabel(sectionId, itemId, text)
     return Registry.SetButtonLabel(S, sectionId, itemId, text)
 end
 
@@ -7946,7 +7946,7 @@ end
 ---@param itemId string
 ---@param enabled boolean
 ---@return boolean
-function PBZDummyMenu.SetButtonEnabled(sectionId, itemId, enabled)
+function ModMenu.SetButtonEnabled(sectionId, itemId, enabled)
     return Registry.SetButtonEnabled(S, sectionId, itemId, enabled)
 end
 
@@ -7955,7 +7955,7 @@ end
 ---@param itemId string
 ---@param variant string
 ---@return boolean
-function PBZDummyMenu.SetButtonVariant(sectionId, itemId, variant)
+function ModMenu.SetButtonVariant(sectionId, itemId, variant)
     return Registry.SetButtonVariant(S, sectionId, itemId, variant)
 end
 
@@ -7964,7 +7964,7 @@ end
 ---@param itemId string
 ---@param active boolean
 ---@return boolean
-function PBZDummyMenu.SetButtonActive(sectionId, itemId, active)
+function ModMenu.SetButtonActive(sectionId, itemId, active)
     return Registry.SetButtonActive(S, sectionId, itemId, active)
 end
 
@@ -7972,7 +7972,7 @@ end
 ---@param sectionId string
 ---@param itemId string
 ---@param value any
-function PBZDummyMenu.Set(sectionId, itemId, value)
+function ModMenu.Set(sectionId, itemId, value)
     Registry.Set(S, sectionId, itemId, value)
 end
 
@@ -7983,7 +7983,7 @@ end
 ---@param options table
 ---@param selectedValue any|nil pass false to clear selection
 ---@return boolean
-function PBZDummyMenu.SetOptions(sectionId, itemId, options, selectedValue)
+function ModMenu.SetOptions(sectionId, itemId, options, selectedValue)
     return Registry.SetOptions(S, sectionId, itemId, options, selectedValue)
 end
 
@@ -7999,7 +7999,7 @@ end)
 
 --- Register a callback invoked each time the menu opens (after shell is visible).
 ---@param fn function
-function PBZDummyMenu.OnOpen(fn)
+function ModMenu.OnOpen(fn)
     if type(fn) ~= "function" then
         error("PBZDummyMenu.OnOpen expects a function")
     end
@@ -8008,32 +8008,32 @@ end
 
 --- Register a callback invoked after the dock edge changes (picker or SetDock).
 ---@param fn fun(side: string)
-function PBZDummyMenu.OnDockChange(fn)
+function ModMenu.OnDockChange(fn)
     if type(fn) ~= "function" then
         error("PBZDummyMenu.OnDockChange expects a function")
     end
     table.insert(onDockCallbacks, fn)
 end
 
-function PBZDummyMenu.Open()
+function ModMenu.Open()
     if not initialized then
-        PBZDummyMenu.Init({})
+        ModMenu.Init({})
     end
     ExecuteInGameThread(openOnGameThread)
 end
 
-function PBZDummyMenu.Close()
+function ModMenu.Close()
     ExecuteInGameThread(closeOnGameThread)
 end
 
-function PBZDummyMenu.Toggle()
+function ModMenu.Toggle()
     if not initialized then
-        PBZDummyMenu.Init({})
+        ModMenu.Init({})
     end
     ExecuteInGameThread(toggleOnGameThread)
 end
 
-function PBZDummyMenu.IsOpen()
+function ModMenu.IsOpen()
     return S.menuOpen == true
 end
 
@@ -8041,17 +8041,17 @@ end
 --- Replaces any open confirm (treated as Cancel). Menu must be open.
 ---@param opts { title?: string, message?: string, confirmLabel?: string, cancelLabel?: string, variant?: string, onConfirm: function, onCancel?: function }
 ---@return boolean
-function PBZDummyMenu.Confirm(opts)
+function ModMenu.Confirm(opts)
     return Confirm.Show(S, opts)
 end
 
-function PBZDummyMenu.IsConfirmOpen()
+function ModMenu.IsConfirmOpen()
     return Confirm.IsOpen(S)
 end
 
 --- List registered section ids (debug / tooling).
 ---@return string[]
-function PBZDummyMenu.ListSections()
+function ModMenu.ListSections()
     return Registry.ListSections(S)
 end
 
