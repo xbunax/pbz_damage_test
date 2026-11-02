@@ -18,6 +18,8 @@
 
 需要 Lua 5.4、`RegisterHook` / `UnregisterHook`、`RegisterKeyBind`、`LoadAsset`、`StaticConstructObject`、`ExecuteInGameThread`、`LoopInGameThreadWithDelay`、`FName`、对象查找和 `ModRef`。入口先检查基本 API，缺失时记录日志并停止初始化，不生成目标。
 
+`FName` 是可调用的构造器，UE4SS 可以通过带受保护元表的 userdata 暴露它；不能仅用 `type(FName)` 或读取 `getmetatable().__call` 判定是否存在。入口改为通过 `FNAME_Find` 查找现有 `None` 名称，直接验证构造器可用性，不新增名称。预览版重发修复了这个导致正确安装仍被停用的检查，并加入了受保护元表的回归测试。
+
 with-UE4SS 自带的设置来源于实测运行库配置：
 
 - `DefaultExecuteInGameThreadMethod = EngineTick`，`HookEngineTick = 1`，`HookUObjectProcessEvent = 1`。
