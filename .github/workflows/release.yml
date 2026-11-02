@@ -1,0 +1,74 @@
+name: Build and release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Lua 5.4 compiler
+        run: sudo apt-get update && sudo apt-get install -y lua5.4
+      - name: Compile-check Lua and test behavior
+        run: python tools/validate.py
+      - name: Test packaging and compatibility boundaries
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Build both packages with hash-verified UE4SS
+        run: python tools/build.py
+      - name: Verify release ZIPs and checksums
+        run: python tools/verify_packages.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-packages
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-packages
+          path: dist
+      - name: Publish verified packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_COMMIT: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '\r\n' < VERSION)"
+          tag="v${version}"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "::notice::Release $tag already exists; assets and tag are not overwritten. Bump VERSION to release a new version."
+            exit 0
+          fi
+          args=()
+          if [[ "$version" == *-* ]]; then args+=(--prerelease); fi
+          gh release create "$tag" dist/*.zip dist/SHA256SUMS.txt \
+            --target "$RELEASE_COMMIT" --title "PBZ Damage Test $tag" \
+            --notes-file docs/RELEASE_NOTES.md "${args[@]}"

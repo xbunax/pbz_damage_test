@@ -1,0 +1,12 @@
+dist/
+.cache/
+__pycache__/
+*.pyc
+*.log
+*.dmp
+*.zip
+dev/
+runtime/
+backups/
+SaveGames/
+deployment.json
