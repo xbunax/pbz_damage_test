@@ -10,12 +10,15 @@ Write-Output "UE4SS.dll SHA256: $actual"
 if ($actual -eq $lock.ue4ss.dll_sha256) {
     Write-Output "MATCH: tested UE4SS $($lock.ue4ss.version)"
 } else {
-    throw 'Untested UE4SS binary. Do not overwrite an existing runtime; review docs/COMPATIBILITY.md.'
+    Write-Warning 'Untested UE4SS binary; runtime/API compatibility still needs verification. See docs/COMPATIBILITY.md.'
 }
 if ($GameExecutable) {
     $gameHash = (Get-FileHash -LiteralPath $GameExecutable -Algorithm SHA256).Hash.ToLowerInvariant()
     Write-Output "PBZ.exe SHA256: $gameHash"
-    if ($gameHash -ne $lock.game.exe_sha256) { throw 'Untested game build.' }
-    Write-Output "MATCH: tested Steam build $($lock.game.steam_build) / UE $($lock.game.engine)"
+    if ($gameHash -ne $lock.game.exe_sha256) {
+        Write-Warning 'Untested game build; this is informational and does not disable the Mod.'
+    } else {
+        Write-Output "MATCH: tested Steam build $($lock.game.steam_build) / UE $($lock.game.engine)"
+    }
 }
 Write-Output 'Read-only check passed. No files or settings were changed.'

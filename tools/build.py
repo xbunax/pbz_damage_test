@@ -13,6 +13,12 @@ RUNTIME_FILES = (
     'ue4ss/MemberVariableLayout.ini', 'ue4ss/UE4SS_Signatures/GNatives.lua',
     'ue4ss/UE4SS_Signatures/GUObjectArray.lua', 'ue4ss/UE4SS_SDK_Backends/UE4SS.json',
 )
+MOD_FILES = (
+    'config.ini', 'Scripts/main.lua', 'Scripts/runtime.lua', 'Scripts/adapter.lua',
+    'Scripts/session.lua', 'Scripts/music.lua', 'Scripts/compat.lua', 'Scripts/config.lua',
+    'Scripts/vendor/ModMenu.lua', 'Scripts/vendor/UEHelpers.lua',
+    'licenses/UE4SS-MIT.txt', 'licenses/ModMenu-MIT.txt',
+)
 
 
 def sha256(data):
@@ -27,10 +33,9 @@ def version():
 
 
 def common_files():
-    files = {p.relative_to(ROOT).as_posix(): p.read_bytes()
-             for p in (ROOT / 'PBZTrainingDummy').rglob('*') if p.is_file()}
-    for name in ('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'dependencies.json',
-                 'docs/COMPATIBILITY.md', 'docs/RELEASE_NOTES.md', 'Check-Compatibility.ps1'):
+    files = {'PBZTrainingDummy/' + name: (ROOT / 'PBZTrainingDummy' / name).read_bytes()
+             for name in MOD_FILES}
+    for name in ('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'docs/COMPATIBILITY.md'):
         files[name] = (ROOT / name).read_bytes()
     return files
 

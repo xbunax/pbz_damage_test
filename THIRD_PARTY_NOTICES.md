@@ -13,7 +13,7 @@
 
 - UE4SS copyright: Narknon, 2022, and contributors.
 - PBZ runtime distribution: https://github.com/KintaroModding/ue4ss
-- Version: `v3.0.1-1183-gcdbc0b66`; archive and DLL identity in `dependencies.json`.
+- Version: `v3.0.1-1183-gcdbc0b66`; archive and DLL identity in `docs/COMPATIBILITY.md` and the source repository's `dependencies.json`.
 - `PBZTrainingDummy/Scripts/vendor/UEHelpers.lua` is copied from that archive's `ue4ss/Mods/shared/UEHelpers/UEHelpers.lua`, unmodified.
 - License: MIT; full text in `PBZTrainingDummy/licenses/UE4SS-MIT.txt`.
 - The with-UE4SS package additionally redistributes the hash-verified upstream proxy, runtime DLL, signatures, member layout, SDK backend and license. Runtime settings are the project's tested configuration; default upstream example mods are omitted.

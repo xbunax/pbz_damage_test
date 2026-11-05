@@ -3,7 +3,7 @@ import argparse
 import json
 import zipfile
 from pathlib import Path
-from build import ROOT, sha256
+from build import ROOT, RUNTIME_FILES, common_files, sha256
 
 
 def verify(path):
@@ -12,6 +12,14 @@ def verify(path):
     prefix = 'ue4ss/Mods/' if bundled else ''
     with zipfile.ZipFile(path) as z:
         names = z.namelist()
+        expected = {(prefix + n if n.startswith('PBZTrainingDummy/') else n)
+                    for n in common_files()}
+        if bundled:
+            expected.update(RUNTIME_FILES)
+            expected.update(('ue4ss/UE4SS-settings.ini', 'ue4ss/Mods/mods.txt'))
+        assert set(names) == expected | {'package_manifest.json'}, 'Unexpected release files'
+        assert not any(Path(n).suffix.lower() in ('.ps1', '.bat', '.cmd', '.py', '.exe', '.zip', '.pdb')
+                       for n in names), 'Non-runtime scripts or build files must not ship'
         assert len(names) == len(set(names)), 'Duplicate ZIP entries'
         assert all(not n.startswith('/') and '..' not in Path(n).parts and '\\' not in n for n in names)
         manifest = json.loads(z.read('package_manifest.json'))

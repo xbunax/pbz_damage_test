@@ -3,6 +3,7 @@ import json
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 from pathlib import Path
 
@@ -11,6 +12,21 @@ import build
 
 
 class PackagingTests(unittest.TestCase):
+    def test_release_allowlist_excludes_scripts_and_local_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for name in build.common_files():
+                target = root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(b'fixture')
+            for name in ('Check-Compatibility.ps1', 'PBZTrainingDummy/install.ps1',
+                         'PBZTrainingDummy/Scripts/debug.py', 'PBZTrainingDummy/startup.log'):
+                (root / name).write_bytes(b'must not ship')
+            with patch.object(build, 'ROOT', root):
+                files = build.common_files()
+            self.assertFalse(any(n.endswith(('.ps1', '.py', '.log')) for n in files))
+            self.assertIn('PBZTrainingDummy/Scripts/main.lua', files)
+
     def test_mod_only_contains_private_dependencies_and_no_loader(self):
         files = build.common_files()
         self.assertIn('PBZTrainingDummy/Scripts/vendor/UEHelpers.lua', files)
