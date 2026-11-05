@@ -23,6 +23,17 @@
 
 两个包包含相同的木桩代码，均不包含 PBZHitEnhance / UnifiedHitstop 的代码、面板或启动组件。木桩整合包可单独安装运行，不需要卡肉 Mod；两者的独立整合包不能覆盖叠装。发行 ZIP 不附带 PowerShell、批处理或 Python 维护脚本。**已有 UE4SS 时使用 mod-only，不要再装一套运行库。** 每次发布附带 `SHA256SUMS.txt`，ZIP 内还有逐文件校验清单。
 
+### 本次更新应该怎样安装
+
+| 当前情况 | 操作 |
+| --- | --- |
+| 首次单独安装木桩 | 下载 `with-UE4SS`，按下方目录结构复制到真实 `PBZ.exe` 旁，无需安装卡肉 Mod |
+| UE4SS 已正常加载，只更新木桩 | 使用 `mod-only`，备份按键配置后更新实际 Mods 目录中的 `PBZTrainingDummy` |
+| 原来依赖卡肉外置运行库，现在要独立使用木桩 | 按“从旧卡肉运行库迁移为独立木桩”步骤切换加载器和安装目录 |
+| 保留旧卡肉运行库，日志出现 `unsupported_game_skipped` | 先按卡肉项目 README 升级其加载器；只覆盖木桩 Lua 或 `mod-only` 无法修复旧代理 |
+
+安装位置是 **`<游戏目录>/platform/steam/PBZ.exe` 所在目录**，不是 Steam 客户端目录，也不是外层游戏目录。ZIP 解压后不需要运行 `.ps1` 或其他安装脚本。
+
 ## 已验证版本
 
 | 项目 | 实测版本 |
@@ -62,8 +73,6 @@
 
 如果使用 `Overrides.ModsFolderPath`、`Overrides.ControllingModsTxt`、`mods.json` 或外置运行库，以现有加载器配置为准；只通过一种控制方式启用本 Mod。不要用发行包中的 `mods.txt` 覆盖已有列表。Mod 不修改共享 UE4SS 设置；请核对[所需 API 与 Hook 设置](docs/COMPATIBILITY.md#所需接口与设置)。
 
-从 PBZHitEnhance / UnifiedHitstop 外置运行库迁移为独立木桩安装：退出游戏，备份原木桩 `config.ini`；确认并停用原 PBZHitEnhance 代理及其 `PBZHitEnhance.ini`，保留外置目录作为备份，再按下方 with-UE4SS 步骤安装并恢复木桩配置。只处理已确认属于旧项目的代理文件。独立木桩使用 `PBZ.exe` 旁的 `ue4ss/Mods`，不再读取卡肉项目的数据目录。
-
 若继续使用旧卡肉运行库：日志中的 `unsupported_game_skipped` 是旧 PBZHitEnhance 加载器的拦截，木桩 mod-only 无法修复该代理；应单独升级 [PBZHitEnhance v0.4.0-preview.3](https://github.com/xbunax/pbz_hit_enhance/releases/tag/v0.4.0-preview.3)。这属于旧环境的迁移说明，不是独立木桩的依赖。
 
 ## 安装 with-UE4SS：尚未安装运行库
@@ -90,6 +99,18 @@
 
 整合包直接使用校验过的上游 PBZ 专用代理和 UE4SS，不包含其他 Mod、调节面板或本机绝对路径。上游加载器与本项目的安装组合仍应按预览版进行验证；游戏内功能验证使用的是同一 UE4SS DLL，配合已有加载器完成。
 
+## 从旧卡肉运行库迁移为独立木桩
+
+适用于原来将木桩装在 PBZHitEnhance / UnifiedHitstop 外置运行库中、现在希望木桩单独运行的情况。完成此切换后，旧卡肉加载器及其外置目录中的其他 Mod 不会自动随新木桩安装加载。
+
+1. 完全退出游戏和卡肉面板。打开 `PBZ.exe` 旁原有的 `PBZHitEnhance.ini`，查看 `[Paths]` 中的 `DataDirectory`；备份该目录中的木桩 `ue4ss/Mods/PBZTrainingDummy/config.ini`。若原运行库另设了 Mods 路径，以其实际配置为准。
+2. 确认原 `dwmapi.dll` 属于 PBZHitEnhance 后，将该 DLL 和 `PBZHitEnhance.ini` 一起移到**游戏目录外的备份目录**。保留原外置数据目录及配置，不删除其他 Mod。若无法确认现有代理的来源，先按它所属项目的说明处理。
+3. 按上方 with-UE4SS 步骤，将木桩包的 `dwmapi.dll` 和整个 `ue4ss` 文件夹复制到真实 `PBZ.exe` 旁。若那里已经存在另一套 UE4SS，先确认并按原说明停用或迁移，不直接混合覆盖。
+4. 将备份的木桩按键配置恢复到新目录 `ue4ss/Mods/PBZTrainingDummy/config.ini`，确认新目录 `ue4ss/Mods/mods.txt` 中有 `PBZTrainingDummy : 1`。
+5. 从 Steam 正常启动游戏，进入可自由行动的场景后按 F8（或配置中的映射键）。检查**新目录**中的 `ue4ss/UE4SS.log` 是否有 `[PBZTrainingDummy] loaded`，不要继续查看旧外置目录的历史日志。
+
+此后木桩使用自己的安装目录和上游 UE4SS 加载器，不需要 `PBZHitEnhance.ini`、`PBZBootstrap.dll` 或卡肉面板。新版游戏的独立整合包冷启动尚未完成实测，当前已验证的 F8 恢复来自修复后的原运行库环境。
+
 ## 使用与按键映射
 
 1. 在平坦、前方留有空间的位置打开菜单，点击“召唤木桩”，等待约 1 秒显示“木桩已就绪”。
@@ -109,7 +130,7 @@ MenuToggle = F9
 
 - **mod-only：**退出游戏，把 `PBZTrainingDummy` 文件夹移出实际 Mods 目录，并将控制列表中的本项改为 `PBZTrainingDummy : 0` 或删除本项。保留 UE4SS 和其他 Mod。
 - **with-UE4SS：**可以先按上面的方法只停用木桩。若要移除运行库，仅在确认 `dwmapi.dll` 和 `ue4ss` 属于这次整合安装、且没有其他 Mod 依赖时，将它们移出游戏目录；不要移除其他来源的文件。
-- **更新：**退出游戏，备份 `config.ini`，替换本 Mod 文件夹后恢复自己的按键配置。已有运行库使用新版本的 mod-only 即可。
+- **更新：**已有运行库能正常加载时，退出游戏，备份 `config.ini`，用新版本 mod-only 替换本 Mod 文件夹后恢复按键配置。若运行库本身未加载，先按上方对应步骤修复旧加载器或迁移为独立安装。
 
 ## 已知边界与故障排查
 
