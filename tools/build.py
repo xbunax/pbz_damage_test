@@ -16,8 +16,10 @@ RUNTIME_FILES = (
 MOD_FILES = (
     'config.ini', 'Scripts/main.lua', 'Scripts/runtime.lua', 'Scripts/adapter.lua',
     'Scripts/session.lua', 'Scripts/music.lua', 'Scripts/compat.lua', 'Scripts/config.lua',
+    'Scripts/targets.lua', 'Scripts/practice.lua', 'Scripts/segments.lua', 'Scripts/i18n.lua',
     'Scripts/vendor/ModMenu.lua', 'Scripts/vendor/UEHelpers.lua',
     'licenses/UE4SS-MIT.txt', 'licenses/ModMenu-MIT.txt',
+    'licenses/PhantomGladiator-MIT.txt',
 )
 
 
@@ -35,8 +37,7 @@ def version():
 def common_files():
     files = {'PBZTrainingDummy/' + name: (ROOT / 'PBZTrainingDummy' / name).read_bytes()
              for name in MOD_FILES}
-    for name in ('README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md', 'docs/COMPATIBILITY.md'):
-        files[name] = (ROOT / name).read_bytes()
+    files['LICENSE'] = (ROOT / 'LICENSE').read_bytes()
     return files
 
 
@@ -54,9 +55,6 @@ def runtime_files(archive, lock):
 
 
 def write_zip(path, files):
-    manifest = {'version': version(), 'files': {n: sha256(b) for n, b in sorted(files.items())}}
-    files = dict(files)
-    files['package_manifest.json'] = (json.dumps(manifest, indent=2) + '\n').encode()
     with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
         for name, data in sorted(files.items()):
             info = zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0))

@@ -17,17 +17,17 @@ def verify(path):
         if bundled:
             expected.update(RUNTIME_FILES)
             expected.update(('ue4ss/UE4SS-settings.ini', 'ue4ss/Mods/mods.txt'))
-        assert set(names) == expected | {'package_manifest.json'}, 'Unexpected release files'
-        assert not any(Path(n).suffix.lower() in ('.ps1', '.bat', '.cmd', '.py', '.exe', '.zip', '.pdb')
-                       for n in names), 'Non-runtime scripts or build files must not ship'
+        assert set(names) == expected, 'Unexpected release files'
+        assert not any(Path(n).suffix.lower() in ('.ps1', '.bat', '.cmd', '.py', '.exe', '.zip', '.pdb',
+                       '.md', '.rst', '.doc', '.docx', '.pdf', '.html', '.rtf')
+                       for n in names), 'Documentation, maintenance scripts and build files must not ship'
         assert len(names) == len(set(names)), 'Duplicate ZIP entries'
         assert all(not n.startswith('/') and '..' not in Path(n).parts and '\\' not in n for n in names)
-        manifest = json.loads(z.read('package_manifest.json'))
-        assert set(names) == set(manifest['files']) | {'package_manifest.json'}
-        for name, digest in manifest['files'].items():
-            assert sha256(z.read(name)) == digest, f'Checksum mismatch: {name}'
+        for name, data in common_files().items():
+            entry = prefix + name if name.startswith('PBZTrainingDummy/') else name
+            assert z.read(entry) == data, f'Source mismatch: {entry}'
         for name in ('main.lua', 'runtime.lua', 'adapter.lua', 'session.lua', 'music.lua',
-                     'compat.lua', 'config.lua', 'vendor/ModMenu.lua', 'vendor/UEHelpers.lua'):
+                     'compat.lua', 'config.lua', 'targets.lua', 'practice.lua', 'segments.lua', 'i18n.lua', 'vendor/ModMenu.lua', 'vendor/UEHelpers.lua'):
             assert prefix + 'PBZTrainingDummy/Scripts/' + name in names
         assert prefix + 'PBZTrainingDummy/config.ini' in names
         assert not any('/shared/' in n or '/UnifiedHitstop/' in n for n in names)
@@ -50,10 +50,15 @@ def main():
     assert len(packages) == 2, 'Expected exactly two release packages'
     for path in packages:
         verify(path)
-    for line in (args.directory / 'SHA256SUMS.txt').read_text().splitlines():
+    checksums = (args.directory / 'SHA256SUMS.txt').read_text().splitlines()
+    assert len(checksums) == len(packages), 'Expected one checksum per release package'
+    checked = set()
+    for line in checksums:
         digest, name = line.split('  ', 1)
-        assert Path(name).name == name
+        assert Path(name).name == name and name not in checked
         assert sha256((args.directory / name).read_bytes()) == digest
+        checked.add(name)
+    assert checked == {p.name for p in packages}, 'Checksum list does not match release packages'
 
 
 if __name__ == '__main__':

@@ -69,6 +69,15 @@ jobs:
           fi
           args=()
           if [[ "$version" == *-* ]]; then args+=(--prerelease); fi
+          notes="$RUNNER_TEMP/release-notes.md"
+          python - "$notes" <<'PY'
+          import pathlib
+          import sys
+          version = pathlib.Path('VERSION').read_text().strip()
+          notes = pathlib.Path('docs/RELEASE_NOTES.md').read_text(encoding='utf-8').split('\n# ', 1)[0].strip()
+          assert notes.startswith('# v' + version + '：'), 'Release notes do not match VERSION'
+          pathlib.Path(sys.argv[1]).write_text(notes + '\n', encoding='utf-8')
+          PY
           gh release create "$tag" dist/*.zip dist/SHA256SUMS.txt \
             --target "$RELEASE_COMMIT" --title "PBZ Damage Test $tag" \
-            --notes-file docs/RELEASE_NOTES.md "${args[@]}"
+            --notes-file "$notes" "${args[@]}"

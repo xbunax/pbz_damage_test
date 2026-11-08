@@ -1895,6 +1895,10 @@ function M.ApplyInit(config, opts, ctx)
     if opts.tabs ~= nil then
         config.tabs = M.NormalizeTabs(opts.tabs)
     end
+    if opts.toggleHint ~= nil then
+        assert(type(opts.toggleHint) == 'string', 'toggleHint must be a string')
+        config.toggleHint = opts.toggleHint
+    end
     if opts.consoleCommand ~= nil then
         if opts.consoleCommand == false or opts.consoleCommand == "" then
             config.consoleCommand = nil
@@ -6783,7 +6787,7 @@ function M.BuildContent(S)
     end
 
     local keyName = tostring(config.keyHint or config.keyName or "F6")
-    local hintText = "[" .. keyName .. "] 打开 / 关闭菜单"
+    local hintText = config.toggleHint or ("[" .. keyName .. "] 打开 / 关闭菜单")
     if type(config.consoleCommand) == "string" and config.consoleCommand ~= "" then
         hintText = hintText .. " · " .. config.consoleCommand
     end

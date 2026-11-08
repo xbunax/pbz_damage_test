@@ -17,6 +17,6 @@
     "repository": "https://github.com/mattdavida/ue4ss-ModMenu",
     "commit": "aff9716695f5432441cb329a9615721cc26a0d57",
     "license": "MIT",
-    "local_changes": "Chinese hint, fixed right dock, private PBZDummyMenu module namespace and private UEHelpers import"
+    "local_changes": "Configurable localized hint, fixed right dock, private PBZDummyMenu module namespace and private UEHelpers import"
   }
 }

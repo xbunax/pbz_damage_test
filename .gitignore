@@ -10,3 +10,5 @@ runtime/
 backups/
 SaveGames/
 deployment.json
+dps_segments.json*
+ui_language.txt*
