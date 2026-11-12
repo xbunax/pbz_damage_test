@@ -27,7 +27,7 @@ def verify(path):
             entry = prefix + name if name.startswith('PBZTrainingDummy/') else name
             assert z.read(entry) == data, f'Source mismatch: {entry}'
         for name in ('main.lua', 'runtime.lua', 'adapter.lua', 'session.lua', 'music.lua',
-                     'compat.lua', 'config.lua', 'targets.lua', 'practice.lua', 'segments.lua', 'i18n.lua', 'vendor/ModMenu.lua', 'vendor/UEHelpers.lua'):
+                     'compat.lua', 'config.lua', 'targets.lua', 'practice.lua', 'segments.lua', 'i18n.lua', 'owned.lua', 'vendor/ModMenu.lua', 'vendor/UEHelpers.lua'):
             assert prefix + 'PBZTrainingDummy/Scripts/' + name in names
         assert prefix + 'PBZTrainingDummy/config.ini' in names
         assert not any('/shared/' in n or '/UnifiedHitstop/' in n for n in names)

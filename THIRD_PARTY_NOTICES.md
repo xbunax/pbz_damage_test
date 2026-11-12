@@ -27,4 +27,9 @@
 - License: MIT; full text in `PBZTrainingDummy/licenses/PhantomGladiator-MIT.txt`.
 - Chinese category captions explain the game's internal enum values; they are not asserted to be verified official localized labels.
 
+The training-arena preview also consults upstream commit `55b252af728046ee55c21ca23abc5ea4c907b98a`
+for native NPC entrance sequencing, Boss-specific limitations and independent health/Sha-Chi attributes.
+Those upstream gameplay modules, story-progress guards and save-repair operations are not bundled or executed.
+The local implementation uses the installed game's reflected APIs and an explicit three-Boss preview list.
+
 Game assets are loaded from the user's installed game and are not included in this repository or release packages.

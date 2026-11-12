@@ -1,5 +1,25 @@
 # UE4SS 与游戏兼容性
 
+## preview.4 定时统计
+
+倒计时仅使用已有 `GameplayStatics.GetTimeSeconds` 和纯 Lua 会话状态，不新增游戏 Hook 或修改伤害计算。5／10／30 秒从首个有效生命或杀气事件开始，按有效计时轴的半开区间 `[开始, 开始+时长)` 接收事件；每次伤害和100ms更新均检查截止。暂停时间扣除，晚到更新仍冻结在准确截止点。
+
+结束后目标仍正常受击和回血，但两通道伤害、命中、自动回血次数和计时冻结。实时生命／杀气显示继续反映游戏状态。提前移除不会伪造完成；历史记录保留测试时长和完成状态。20 组 Lua 5.4 离线测试覆盖核心与菜单路径，实际 UI 倒计时尚未实机验收。
+
+## preview.4 本地开发验证范围
+
+2026-11-11 的开发基线是已安装 Steam build 26367565，PBZ.exe SHA256 为 `4415933ce33476f14c837abb61a1b60af8b78cd81783896501913a7aac69e423`；本轮通过源码与同二进制历史反射核对接口，未启动游戏或生成 Boss。
+
+Boss 生成使用历史反射中 `/SGameAI/FunctionLibrary/BP_SGameAIFunctionLibrary.BP_SGameAIFunctionLibrary_C` 的 `SpawnAIDefered`、`FinishSpawnAIDefered`、`ActivateAI`。结束生成后先临时关闭仇恨，再请求正常登场；组件、属性、地面和非行动状态稳定后才冻结为待训练目标。自由对练明确调用已导出的 `SGameAIComponent.StartAI()`，与单招循环分开。15 秒内未就绪则回收，不自动重新召唤。
+
+血量和杀气使用原生配置中远程 `GameplayAttribute` 描述符；先解析全部描述符，写上限、下限与当前值后读回。当前值恢复跟随上限，失败恢复原值，回滚不确定时回收目标。保留更高的原生 Health_Min，无法保证阻止 Boss 低血阶段或处决；原生阶段改变最低血线时可能需要完整重开。
+
+`BasicAttributeSet.Shachi`／`Shachi_Max` 是实时杀气来源；事件解析把 `GeneralDamage.*` 与 `AngerDamage.*` 分成两通道，排除 `PoiseDamage` 和资源回复。只在防守方被动回调与 payload.TargetActor 一致时处理事件，并根据训练实例是 Target 还是 `GetDamageSourceOwner()` 返回的 Attacker 选择分支。历史本机日志观察到 `AngerDamage.Normal`，但尚未逐击对照真实 Shachi 变化；普通／精准防御可能走不同回调路径，不能声明全部覆盖。条差值不用于累计，避免把自然恢复、自身消耗和破防回满误计为伤害。当前仍按训练目标实例统计，不承诺仅包含玩家来源。
+
+Actor 所有权清理在生成前记录现有 Actor，生成后处理新增且 Owner／Instigator 链能连回目标的对象。已有地图 Actor 不因归属变化被销毁。无归属对象、某些全局 HUD／音乐／镜头和剧情回调不在通用归属清理保证范围内；若主 Actor 被游戏先行销毁，尚未登记的子对象也可能无法追溯。三名 Boss、原生攻击、导航、低血线及清理必须实机验收后再声明支持。清理失败保留对象和控制器引用，不自动反复生成；换图清理不向新玩家 Pawn 建立旧 Boss 仇恨。
+
+离线：19 组 Lua 5.4 测试、6 项 Python 测试；使用 `tools/validate.py`（原生 Lua/luac）或已安装 `lupa.lua54` 的 `tools/validate_lupa.py`。本轮使用后者。发行包包含新增的 `owned.lua`，继续按运行文件白名单检查。
+
 ## 固定实测组合
 
 | 内容 | 标识 |

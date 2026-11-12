@@ -60,4 +60,18 @@ for cycle=1,20 do
  time=time+.3
 end
 assert(s.completed==20)
+-- Free AI is not a single ability loop: no 15-second timeout or periodic reactivation.
+e,s,p,tick=fixture()
+s.control.profile={boss=true,trainingRadius=1500}
+local starts=0
+s.api.startAI=function()starts=starts+1 end
+M.startAI(s,p,0);tick(30);tick(300)
+assert(s.running and s.phase=='ai'and starts==1 and e.attacks==0)
+e.far=true;tick(301);assert(not s.running and s.message:find('训练范围',1,true))
+e.far=false
+M.startAI(s,p,302);p.hp=0;tick(303);assert(not s.running)
+p.hp=100;s.api.startAI=function()error('AI startup failed')end
+assert(not pcall(M.startAI,s,p,304)and not s.running)
+assert(s.message=='自由对练启动失败，攻击已停止')
+s.control.profile={};assert(not pcall(M.startAI,s,p,305))
 print('PASS: interrupted/countered attacks recover; retries throttled and bounded; no overlap; ground/busy/range waits; stop/death/skill loss; 20 cycles')

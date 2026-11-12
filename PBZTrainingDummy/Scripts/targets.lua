@@ -8,6 +8,7 @@ M.taxonomy={
  {id='Puppet',label='人偶',native=true},
  {id='Animal',label='动物',native=true},
  {id='HumanMaster',label='人类高手',native=true},
+ {id='boss',label='Boss 训练（实验）',native=false},
 }
 M.list={
  {id='gold',name='金面人训练木桩',category='training',class='/Game/RenewalContent/Actors/Mobs/Normal/BP_Monster_GoldMaskMan_Dummy_OnlyHit.BP_Monster_GoldMaskMan_Dummy_OnlyHit_C',skills={}},
@@ -35,9 +36,13 @@ M.list={
  {id='sworddoll',name='剑盾人偶',category='Puppet',class='/PBZCombatAsset/ActorData/Mobs/FemaleDoll/BP_Monster_FemaleDoll_Sword.BP_Monster_FemaleDoll_Sword_C',skills={}},
  {id='speardoll',name='枪盾人偶',category='Puppet',class='/PBZCombatAsset/ActorData/Mobs/MaleDoll/BP_Monster_MaleDoll_QiangDun.BP_Monster_MaleDoll_QiangDun_C',skills={}},
  {id='dog',name='狂犬',category='Animal',class='/PBZCombatAsset/ActorData/Mobs/005_ModDog/BP_Monster_Dog.BP_Monster_Dog_C',skills={}},
+ -- Explicit, single-form preview whitelist. Story, rider and arena-dependent variants stay excluded.
+ {id='ahua',name='新娘阿花',category='boss',boss=true,nativeSpawn=true,spawnDistance=600,trainingRadius=3000,class='/PBZCombatAsset/ActorData/Mobs/042_AHua/BP_Monster_AHua_GuiTouDao.BP_Monster_AHua_GuiTouDao_C',skills={}},
+ {id='moyuan',name='魔渊',category='boss',boss=true,nativeSpawn=true,spawnDistance=700,trainingRadius=3000,class='/PBZCombatAsset/ActorData/Mobs/067_MoTian/BP_Monster_MoTian.BP_Monster_MoTian_C',skills={}},
+ {id='biyuan',name='毕远掌门残躯',category='boss',boss=true,nativeSpawn=true,spawnDistance=600,trainingRadius=3000,class='/PBZCombatAsset/ActorData/Mobs/072_CanQu_BiYuan/BP_Monster_BiYuan.BP_Monster_BiYuan_C',skills={}},
 }
 for _,row in ipairs(M.list)do
- local hint=row.skills.red and '原生红光' or row.skills.blue and '原生蓝光' or '静止受击'
+ local hint=row.boss and 'Boss 对练（实验）'or row.skills.red and '原生红光' or row.skills.blue and '原生蓝光' or '静止受击'
  row.label=row.name..'（'..hint..'）'
 end
 function M.get(id)
@@ -48,7 +53,7 @@ local function identity(key,...)if select('#',...)>0 then return string.format(k
 function M.label(id,T)
  T=T or identity
  local row=M.get(id)
- local hint=row.skills.red and '原生红光' or row.skills.blue and '原生蓝光' or '静止受击'
+ local hint=row.boss and 'Boss 对练（实验）'or row.skills.red and '原生红光' or row.skills.blue and '原生蓝光' or '静止受击'
  return T(row.name)..T('（%s）',T(hint))
 end
 function M.options(category,T)
@@ -71,6 +76,7 @@ function M.description(id,T)
  local row=M.get(id);local modes={T('静止受击')}
  if row.skills.red then modes[#modes+1]=T('红光循环') end
  if row.skills.blue then modes[#modes+1]=T('蓝光循环') end
+ if row.boss then return T('训练模式：静止受击、自由对练（实验）；单招和阶段选择暂未开放')end
  local pending=not row.skills.red and not row.skills.blue and row.category~='training'
  return T('训练模式：%s%s',table.concat(modes,T('、')),pending and T('（红蓝招式待核验）') or '')
 end
@@ -80,10 +86,15 @@ function M.modes(id,T)
  local out={{label=T('静止受击'),value='hold'}}
  if row.skills.red then out[#out+1]={label=T('循环红光（实验）'),value='red'}end
  if row.skills.blue then out[#out+1]={label=T('循环蓝光（实验）'),value='blue'}end
+ if row.boss then out[#out+1]={label=T('自由对练（实验）'),value='ai'}end
  return out
 end
 function M.health(value)
  assert(type(value)=='number' and value==value and value>=10 and value<=10000000,'目标血量须为 10～10000000')
+ return math.floor(value)
+end
+function M.shachi(value)
+ assert(type(value)=='number'and value==value and value>=1 and value<=10000000,'目标杀气须为 1～10000000')
  return math.floor(value)
 end
 function M.interval(value)

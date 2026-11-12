@@ -16,7 +16,7 @@ RUNTIME_FILES = (
 MOD_FILES = (
     'config.ini', 'Scripts/main.lua', 'Scripts/runtime.lua', 'Scripts/adapter.lua',
     'Scripts/session.lua', 'Scripts/music.lua', 'Scripts/compat.lua', 'Scripts/config.lua',
-    'Scripts/targets.lua', 'Scripts/practice.lua', 'Scripts/segments.lua', 'Scripts/i18n.lua',
+    'Scripts/targets.lua', 'Scripts/practice.lua', 'Scripts/segments.lua', 'Scripts/i18n.lua', 'Scripts/owned.lua',
     'Scripts/vendor/ModMenu.lua', 'Scripts/vendor/UEHelpers.lua',
     'licenses/UE4SS-MIT.txt', 'licenses/ModMenu-MIT.txt',
     'licenses/PhantomGladiator-MIT.txt',

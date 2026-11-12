@@ -36,7 +36,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: release-packages
-          path: dist/*
+          path: |
+            dist/pbz-damage-test-v*-windows-x64.zip
+            dist/SHA256SUMS.txt
           if-no-files-found: error
 
   release:
@@ -53,6 +55,8 @@ jobs:
         with:
           name: release-packages
           path: dist
+      - name: Verify downloaded release packages
+        run: python tools/verify_packages.py
       - name: Publish verified packages
         env:
           GH_TOKEN: ${{ github.token }}
@@ -78,6 +82,9 @@ jobs:
           assert notes.startswith('# v' + version + '：'), 'Release notes do not match VERSION'
           pathlib.Path(sys.argv[1]).write_text(notes + '\n', encoding='utf-8')
           PY
-          gh release create "$tag" dist/*.zip dist/SHA256SUMS.txt \
+          gh release create "$tag" \
+            "dist/pbz-damage-test-v${version}-mod-only-windows-x64.zip" \
+            "dist/pbz-damage-test-v${version}-with-UE4SS-windows-x64.zip" \
+            dist/SHA256SUMS.txt \
             --target "$RELEASE_COMMIT" --title "PBZ Damage Test $tag" \
             --notes-file "$notes" "${args[@]}"

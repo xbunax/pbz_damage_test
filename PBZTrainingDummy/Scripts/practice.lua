@@ -10,6 +10,17 @@ function M.stop(s,reason)
  s.message=reason or '攻击已停止'
  if s.api.valid(s.control.actor)then s.api.hold(s.control)end
 end
+function M.startAI(s,player,now)
+ M.stop(s)
+ assert(s.control.profile and s.control.profile.boss,'当前目标不支持自由对练')
+ local ok,err=pcall(s.api.startAI,s.control,player)
+ if not ok then
+  pcall(M.stop,s,'自由对练启动失败，攻击已停止')
+  error(err)
+ end
+ s.skill=nil;s.started=nil;s.interval=nil;s.nextAt=nil;s.completed=0
+ s.running=true;s.phase='ai';s.message='自由对练进行中，打开菜单可停止'
+end
 function M.start(s,player,skill,interval,now)
  assert(type(interval)=='number' and interval>=0.5 and interval<=30,'无效攻击间隔')
  assert(type(skill)=='string','当前角色不支持此攻击')
@@ -32,6 +43,11 @@ function M.tick(s,player,now)
  local A=s.api
  if not A.valid(s.control.actor)or not A.valid(player)or A.health(player)<=0 then
   M.stop(s,'玩家或目标不可用，攻击已停止');return
+ end
+ if s.phase=='ai'then
+  local radius=s.control.profile.trainingRadius or 3000
+  if A.distance(s.control.actor,player)>radius then M.stop(s,'超出训练范围，攻击已停止')end
+  return
  end
  local active=A.skillActive(s.control.actor,s.skill)
  if s.phase=='waiting' and now>=s.nextAt then

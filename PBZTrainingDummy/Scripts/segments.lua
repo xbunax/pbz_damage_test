@@ -21,6 +21,37 @@ local function write(fs,path,data)
     local ok=f:write(data);local closed=f:close()
     return ok~=nil and ok~=false and closed~=nil and closed~=false and read(fs,path)==data
 end
+local function consistent(rate,total,seconds)
+    return finite(rate)and rate>=0 and math.abs(rate-total/math.max(1,seconds))<=math.max(0.000001,rate*0.000001)
+end
+local function shachiValid(row)
+    local present=false
+    for _,key in ipairs({'shachiTotal','shachiMaximum','shachiDps','shachiLast','shachiRecentDps'})do
+        if row[key]~=nil then present=true;if not finite(row[key])or row[key]<0 then return false end end
+    end
+    if not present then return true end -- v1 history did not measure this channel.
+    return finite(row.shachiTotal)and finite(row.shachiMaximum)and row.shachiMaximum<=row.shachiTotal and
+        consistent(row.shachiDps,row.shachiTotal,row.seconds)
+end
+local function metaValid(row)
+    if row.testDuration~=nil then
+        if row.testDuration~=0 and row.testDuration~=5 and row.testDuration~=10 and row.testDuration~=30 then return false end
+        if row.timerCompleted~=nil and type(row.timerCompleted)~='boolean'then return false end
+        if row.timerCompleted and (row.testDuration==0 or math.abs(row.seconds-row.testDuration)>0.000001)then return false end
+        if row.testDuration>0 and row.seconds>row.testDuration+0.000001 then return false end
+    elseif row.timerCompleted~=nil then return false end
+    if row.maxShachi~=nil and (not finite(row.maxShachi)or row.maxShachi<=0)then return false end
+    for _,key in ipairs({'healthPolicy','shachiPolicy'})do
+        if row[key]~=nil and row[key]~='custom'and row[key]~='native'then return false end
+    end
+    if row.level~=nil and (not finite(row.level)or row.level<0)then return false end
+    if row.profile~=nil and (not text(row.profile,128)or text(row.profile,128)~=row.profile)then return false end
+    if row.difficulty~=nil then
+        if type(row.difficulty)=='number'then return finite(row.difficulty)and row.difficulty>=0 end
+        if not text(row.difficulty,128)or text(row.difficulty,128)~=row.difficulty then return false end
+    end
+    return true
+end
 function M.new(path,json,fs)
     fs=fs or io
     local s={rows={},nextId=1,warning=nil,blocked=false,path=path}
@@ -28,7 +59,7 @@ function M.new(path,json,fs)
     local function decode(data)
         if type(data)~='string' or #data>M.MAX_BYTES then return nil end
         local ok,doc=pcall(json.Decode,data)
-        if not ok or type(doc)~='table' or doc.version~=1 or not integer(doc.nextId) or doc.nextId<1 or
+        if not ok or type(doc)~='table' or (doc.version~=1 and doc.version~=2) or not integer(doc.nextId) or doc.nextId<1 or
             type(doc.records)~='table' or #doc.records>M.LIMIT then return nil end
         local rows,ids,maxId={},{},0
         for index,row in pairs(doc.records)do
@@ -40,8 +71,9 @@ function M.new(path,json,fs)
             for _,key in ipairs({'seconds','total','maximum','maxHP','dps'})do
                 if not finite(row[key])or row[key]<0 then return nil end
             end
-            if row.total<=0 or row.maxHP<10 or not integer(row.events)or row.events<1 or
-                not integer(row.refills)or math.abs(row.dps-row.total/math.max(1,row.seconds))>math.max(0.000001,row.dps*0.000001)then return nil end
+            if (row.total<=0 and (not finite(row.shachiTotal)or row.shachiTotal<=0))or row.maxHP<10 or
+                not integer(row.events)or row.events<1 or not integer(row.refills)or
+                not consistent(row.dps,row.total,row.seconds)or not shachiValid(row)or not metaValid(row)then return nil end
             if row.autoLabel~=nil and type(row.autoLabel)~='boolean'then return nil end
             ids[row.id]=true;maxId=math.max(maxId,row.id);rows[index]=copy(row)
         end
@@ -69,7 +101,7 @@ function M.new(path,json,fs)
     end
     local function persist(rows,nextId)
         if s.blocked then return false,s.warning end
-        local ok,encoded=pcall(json.Encode,{version=1,nextId=nextId,records=rows})
+        local ok,encoded=pcall(json.Encode,{version=2,nextId=nextId,records=rows})
         if not ok or type(encoded)~='string' or #encoded>M.MAX_BYTES then return false,'分段数据无法保存或已超过大小限制' end
         if not write(fs,path..'.tmp',encoded)then return false,'临时分段文件写入失败，当前统计已保留' end
         if currentRaw and not write(fs,path..'.bak',currentRaw)then return false,'历史备份写入失败，当前统计已保留' end
@@ -82,7 +114,8 @@ function M.new(path,json,fs)
     end
     function s:add(snapshot,meta,label,created)
         if #self.rows>=M.LIMIT then return nil,'已保存 100 段，请先删除不需要的对比记录' end
-        if not snapshot or not finite(snapshot.total)or snapshot.total<=0 or
+        if type(snapshot)~='table' or not finite(snapshot.total)or snapshot.total<0 or
+            (snapshot.total==0 and (not finite(snapshot.shachiTotal)or snapshot.shachiTotal<=0))or
             not finite(snapshot.seconds)or snapshot.seconds<0 or not finite(snapshot.maximum)or snapshot.maximum<0 or
             not integer(snapshot.events)or snapshot.events<1 or not integer(snapshot.refills)then return nil,'本段还没有有效伤害，无法保存' end
         if type(meta)~='table' or not finite(meta.maxHP)or meta.maxHP<10 then return nil,'本段目标信息不完整' end
@@ -94,6 +127,18 @@ function M.new(path,json,fs)
             mode=text(meta.mode or 'hold',128),maxHP=meta.maxHP,seconds=snapshot.seconds,total=snapshot.total,
             events=snapshot.events,refills=snapshot.refills,maximum=snapshot.maximum,
             dps=snapshot.total/math.max(1,snapshot.seconds),created=text(created or os.date('%Y-%m-%d %H:%M:%S'),128),autoLabel=autoLabel}
+        for _,key in ipairs({'maxShachi','healthPolicy','shachiPolicy','level','difficulty','profile'})do row[key]=meta[key]end
+        row.testDuration=snapshot.testDuration;row.timerCompleted=snapshot.completed
+        if meta.testDuration~=nil and meta.testDuration~=row.testDuration then return nil,'本段计时设置不一致，无法保存'end
+        if snapshot.shachiTotal~=nil then
+            row.shachiTotal=snapshot.shachiTotal;row.shachiMaximum=snapshot.shachiMaximum
+            row.shachiLast=snapshot.shachiLast;row.shachiRecentDps=snapshot.shachiRecentDps
+            row.shachiDps=finite(snapshot.shachiTotal)and snapshot.shachiTotal/math.max(1,snapshot.seconds)or nil
+        elseif snapshot.shachiMaximum~=nil or snapshot.shachiDps~=nil or snapshot.shachiLast~=nil or snapshot.shachiRecentDps~=nil then
+            return nil,'本段杀气统计不完整，无法保存'
+        end
+        if not shachiValid(row)then return nil,'本段杀气统计不完整，无法保存' end
+        if not metaValid(row)then return nil,'本段目标信息不完整' end
         if not row.targetId or row.targetId=='' or not row.targetName or row.targetName=='' or
             not row.mode or not row.created then return nil,'本段目标名称无效' end
         local rows={};for _,old in ipairs(self.rows)do rows[#rows+1]=copy(old)end
@@ -116,7 +161,8 @@ function M.new(path,json,fs)
         T=T or identity
         local out={}
         for _,row in ipairs(self.rows)do
-            out[#out+1]={label=string.format('#%d %s | DPS %.2f',row.id,M.name(row,T),row.dps),value=tostring(row.id)}
+            local shachi=row.shachiDps~=nil and T(' | 削杀气/s %.2f',row.shachiDps)or T(' | 杀气未记录')
+            out[#out+1]={label=string.format('#%d %s | DPS %.2f',row.id,M.name(row,T),row.dps)..shachi,value=tostring(row.id)}
         end
         if #out==0 then out[1]={label=T('暂无保存分段'),value='none'}end
         return out
@@ -126,16 +172,35 @@ end
 function M.describe(row,T,targetName)
     T=T or identity
     if not row then return T('请选择保存分段') end
-    return T('#%d %s\n目标：%s / 血量 %.0f\n平均 DPS %.2f | 伤害 %.2f\n有效时间 %.2f 秒 | 命中 %d 次',
+    local details=T('#%d %s\n目标：%s / 血量 %.0f\n平均 DPS %.2f | 伤害 %.2f\n有效时间 %.2f 秒 | 命中 %d 次',
         row.id,M.name(row,T),targetName or row.targetName,row.maxHP,row.dps,row.total,row.seconds,row.events)
+    local shachi=row.shachiTotal~=nil and T('杀气上限 %s | 累计削杀气 %.2f\n平均削杀气/s %.2f | 最高单次 %.2f',
+        row.maxShachi and string.format('%.0f',row.maxShachi)or T('未记录'),row.shachiTotal,row.shachiDps,row.shachiMaximum)or T('杀气统计：未记录')
+    local timer=T('计时模式：未记录')
+    if row.testDuration==0 then timer=T('计时模式：不限时')
+    elseif row.testDuration then
+        timer=T('计时模式：%d 秒%s',row.testDuration,T(row.timerCompleted and '（已完成）'or '（未完成）'))
+    end
+    return details..'\n'..shachi..'\n'..timer
 end
 function M.compare(a,b,T)
     T=T or identity
     if not a or not b then return T('保存两段后，可选择 A 与 B 比较') end
     local difference=b.dps-a.dps
     local percent=a.dps>0 and T('（%+.2f%%）',difference/a.dps*100)or T('（A 的 DPS 为零）')
-    local condition=a.targetId==b.targetId and a.maxHP==b.maxHP and a.mode==b.mode
-    return T('B 相比 A：DPS %+.2f %s\n%s',difference,percent,
-        T(condition and '目标、血量与训练模式相同；请保持其他测试条件一致' or '目标、血量或训练模式不同，比较时请注意条件差异'))
+    local condition=a.maxShachi~=nil and b.maxShachi~=nil and a.healthPolicy~=nil and b.healthPolicy~=nil and
+        a.shachiPolicy~=nil and b.shachiPolicy~=nil and a.testDuration~=nil and b.testDuration~=nil
+    for _,key in ipairs({'targetId','maxHP','maxShachi','mode','healthPolicy','shachiPolicy','level','difficulty','profile','testDuration','timerCompleted'})do
+        if a[key]~=b[key]then condition=false end
+    end
+    local shachi=T('削杀气比较：未记录')
+    if a.shachiDps~=nil and b.shachiDps~=nil then
+        local change=b.shachiDps-a.shachiDps
+        local ratio=a.shachiDps>0 and T('（%+.2f%%）',change/a.shachiDps*100)or T('（A 的削杀气为零）')
+        shachi=T('B 相比 A：削杀气/s %+.2f %s',change,ratio)
+    end
+    return T('B 相比 A：DPS %+.2f %s\n%s',difference,percent,shachi)..'\n'..
+        T(condition and '目标、资源与计时设置相同；请保持其他测试条件一致' or
+            '目标、资源、模式或计时设置不同或未记录，比较时请注意条件差异')
 end
 return M

@@ -7,23 +7,29 @@ local fs=realDofile(root..'/tests/memory_fs.lua')
 local archivePath,languagePath
 local now,currentWorld,playerAlive=0,'world1',true
 local function obj(id)
- return {id=id,valid=true,hp=10000,max=10000,GetAddress=function(s)return s.id end,
+ return {id=id,valid=true,hp=10000,max=10000,shachi=3000,shachiMax=3000,
+  IsValid=function(s)return s.valid end,GetAddress=function(s)return s.id end,
   GetFullName=function(s)return s.id end,GetClass=function()return {GetFName=function()
    return {ToString=function()return 'DamageTakenPayload'end}end}end}
 end
 local player=obj('player');local nextId=0
 local active=false
 local A={valid=function(o)return o and o.valid end,player=function()return playerAlive and player or nil end,
- now=function()return now end,world=function()return currentWorld end,
+ now=function()return now end,world=function(o)return o.world or currentWorld end,
  position=function(_,_,path)return {},path end,
- spawn=function(_,_,path)nextId=nextId+1;local a=obj('dummy'..nextId);a.path=path;return a,{actor=a,tags={},noAggro=false}end,
- configure=function(a,hp)a.hp=hp;a.max=hp end,health=function(a)return a.hp,a.max end,
+ spawn=function(_,_,path,profile)nextId=nextId+1;local a=obj('dummy'..nextId);a.path=path;a.world=currentWorld;return a,{actor=a,tags={},noAggro=false,profile=profile}end,
+ ready=function()return true end,
+ configure=function(a,hp,shachi)a.hp=hp or a.max;a.max=hp or a.max;a.shachi=shachi or a.shachiMax;a.shachiMax=shachi or a.shachiMax end,
+ health=function(a)return a.hp,a.max end,shachi=function(a)return a.shachi,a.shachiMax end,
+ restoreShachi=function(a)a.shachi=a.shachiMax end,
  heal=function(a)a.hp=a.max end,destroy=function(a)if a then a.valid=false end end,
  hold=function()active=false end,release=function()end,clearAggro=function()end,
- setNoAggro=function(c,_,on)c.noAggro=on end,hasSkill=function()return true end,
+ setNoAggro=function(c,p,on)assert(c.actor.world==(p.world or currentWorld),'Never establish cross-world hatred');c.noAggro=on;c.actor.noAggro=on end,hasSkill=function()return true end,
  skillActive=function()return active end,busy=function()return false end,
  distance=function()return 180 end,aim=function()end,attack=function()active=true;return true end,
- damage=function(p)return p.amount end,damageHook='test-damage'}
+ damageSource=function(p)return p.source end,
+ damage=function(p)return p.amount,p.shachiDamage end,damageHook='test-damage'}
+A.startAI=function(c)c.noAggro=false;c.actor.noAggro=false;active=true end
 local UI={sections={},values={},labels={},enabled={},options={},open=false}
 function UI.Init(opts)
  UI.config=UI.config or {}
@@ -79,8 +85,8 @@ UI.Open();assert(UI.Get('dummy','target')=='gold' and UI.Get('dummy','noAggro')=
 callback('dummy','spawn','onClick');local first=mod.actor();assert(first and not UI.enabled['dummy.start'])
 now=1.1;mod.tick();assert(UI.enabled['stats.reset'])
 UI.Set('dummy','maxHP',25000);callback('dummy','applyHP','onClick');assert(first.max==25000 and first.hp==25000)
-local function hit(target,amount)
- local p=obj('payload');p.TargetActor=target;p.amount=amount
+local function hit(target,amount,shachiDamage,source)
+ local p=obj('payload');p.TargetActor=target;p.amount=amount;p.shachiDamage=shachiDamage;p.source=source
  damageHook({get=function()return {GetAvatarActorFromActorInfo=function()return target end}end},
   {get=function()return {OptionalObject=p}end})
 end
@@ -138,7 +144,7 @@ UI.Set('stats','name','用户武器名');UI.Set('dummy','maxHP',12345);UI.SetTab
 local total,events,rows=mod.state.total,mod.state.events,#mod.history.rows
 callback('dummy','language','onChange','en');mod.tick()
 assert(mod.language.language=='en' and fs.files[languagePath]=='en\n')
-assert(UI.config.title=='Damage Test Dummy' and UI.config.toggleHint=='[F8] Toggle menu')
+assert(UI.config.title=='Training Arena' and UI.config.toggleHint=='[F8] Toggle menu')
 assert(UI.GetTab()=='Compare Runs' and UI.IsOpen() and mod.actor()==second)
 assert(UI.Get('stats','name')=='用户武器名' and UI.Get('dummy','maxHP')==12345)
 assert(mod.state.total==total and mod.state.events==events and mod.state.paused and #mod.history.rows==rows)
@@ -177,5 +183,114 @@ assert(mod.settings.category=='GuaiMian' and #UI.options['dummy.target']==12)
 callback('dummy','spawn','onClick');local third=mod.actor();now=125;mod.tick()
 player.hp=0;mod.tick();assert(not mod.actor() and not third.valid)
 hit(third,100);assert(mod.state.events==0)
+-- Boss controls and dual-resource statistics use the real menu callbacks.
+player.hp=10000
+UI.Open()
+callback('dummy','category','onChange','boss')
+assert(mod.settings.target=='ahua' and UI.Get('dummy','healthPolicy')=='native')
+now=130;callback('dummy','spawn','onClick');local boss=assert(mod.actor())
+now=132;mod.tick();assert(UI.enabled['stats.reset'])
+UI.Set('dummy','healthPolicy','custom');UI.Set('dummy','shachiPolicy','custom')
+UI.Set('dummy','maxHP',40000);UI.Set('dummy','maxShachi',5000)
+callback('dummy','applyHP','onClick');assert(boss.max==40000 and boss.shachiMax==5000)
+now=133;boss.shachi=4500;hit(boss,0,500,player)
+assert(mod.state.events==1 and mod.state.total==0 and mod.state.shachiTotal==500)
+assert(UI.labels['stats.shachiTotal']:find('500.00',1,true))
+assert(UI.labels['stats.resources']:find('4500 / 5000',1,true))
+now=134;callback('stats','pause','onClick');boss.shachi=4700;mod.tick()
+hit(boss,100,100,player)
+assert(mod.state.shachiTotal==500 and mod.state.total==0)
+assert(UI.labels['stats.resources']:find('4700 / 5000',1,true),'Live bar is independent from paused accounting')
+callback('stats','pause','onClick')
+now=135;hit(player,0,250,boss)
+assert(mod.state.shachiTotal==750,'Attacker-side damage can count a parried training target')
+UI.Set('stats','name','杀气训练');callback('stats','save','onClick')
+local saved=mod.history.rows[#mod.history.rows]
+assert(saved.total==0 and saved.shachiTotal==750 and saved.maxShachi==5000)
+callback('dummy','noAggro','onChange',true)
+callback('dummy','mode','onChange','ai');callback('dummy','start','onClick')
+assert(active and not UI.IsOpen())
+now=170;mod.tick();assert(active,'Free AI does not use the single-move timeout')
+A.distance=function()return 5000 end
+now=171;mod.tick();assert(not active and boss.noAggro,'Range stop restores the chosen no-aggro policy')
+A.distance=function()return 180 end
+callback('dummy','start','onClick');assert(active)
+UI.Open();assert(not active,'Opening the menu stops autonomous combat')
+boss.shachi=0;callback('stats','reset','onClick');assert(boss.shachi==5000)
+UI.Set('dummy','healthPolicy','native');UI.Set('dummy','shachiPolicy','native')
+callback('dummy','applyHP','onClick')
+assert(boss.max==10000 and boss.shachiMax==3000,'Native mode restores this spawn original maxima')
+UI.Set('dummy','maxHP',0);UI.Set('dummy','maxShachi',0)
+callback('dummy','applyHP','onClick')
+assert(boss.max==10000 and boss.shachiMax==3000,'Native settings ignore invalid unused custom inputs')
+callback('dummy','restart','onClick');assert(not boss.valid and mod.actor()~=boss)
+now=172;mod.tick();local restarted=mod.actor()
+A.ready=function()return false,'等待 Boss 登场'end
+callback('dummy','restart','onClick');local pending=mod.actor()
+assert(not restarted.valid and pending)
+now=190;mod.tick();assert(not pending.valid and not mod.actor(),'Timed-out initialization is reclaimed')
+A.ready=function()return true end
+now=191;callback('dummy','spawn','onClick');local failed=mod.actor();now=193;mod.tick()
+local configure=A.configure
+A.configure=function(a)a.shachiMax=123;error('资源恢复未确认，请移除目标')end
+callback('dummy','applyHP','onClick')
+assert(not failed.valid and not mod.actor(),'Unconfirmed resource rollback removes the target and freezes statistics')
+A.configure=configure
+now=194;callback('dummy','spawn','onClick');local retained=mod.actor();now=196;mod.tick()
+local destroy=A.destroy
+A.destroy=function()error('injected destroy failure')end
+player.hp=0;mod.tick();player.hp=10000;UI.Open()
+assert(mod.actor()==retained and retained.valid and UI.enabled['dummy.remove'],'Failed cleanup remains retryable')
+assert(UI.labels['dummy.status']:find('清理失败',1,true),'Player-death status must not hide a cleanup failure')
+local beforeId=nextId
+callback('dummy','spawn','onClick');assert(nextId==beforeId,'Do not create a replacement before old cleanup succeeds')
+A.destroy=destroy;callback('dummy','remove','onClick');assert(not mod.actor()and not retained.valid)
+local spawnActor=A.spawn
+local partial
+A.spawn=function(p,t,path,profile,onCreated)
+ local a,c=spawnActor(p,t,path,profile);partial=a;onCreated(a,c);error('injected entrance failure')
+end
+callback('dummy','spawn','onClick')
+assert(partial and not partial.valid and not mod.actor(),'Registered roots are reclaimed when Finish/entrance throws')
+A.spawn=spawnActor
+-- Timed DPS controls: first-hit start, exact deadline, saved result and repeat runs.
+now=200;callback('dummy','spawn','onClick');local timed=assert(mod.actor());now=202;mod.tick()
+UI.Set('stats','testDuration',5);callback('stats','beginTest','onClick')
+assert(mod.state.testDuration==5 and not mod.state.started and not mod.state.paused)
+now=210;mod.tick();assert(UI.labels['stats.countdown']:find('等待首次命中',1,true))
+now=211;hit(timed,1000,500,player)
+now=213;hit(timed,500,0,player)
+now=216;hit(timed,99999,99999,player)
+assert(mod.state.completed and mod.state.total==1500 and mod.state.shachiTotal==500)
+assert(UI.labels['stats.average']:find('300.00',1,true)and not UI.enabled['stats.pause'])
+assert(UI.labels['stats.countdown']:find('结束',1,true))
+local refills=mod.state.refills
+now=300;timed.hp=1;mod.tick()
+assert(timed.hp==timed.max and mod.state.refills==refills,'Post-deadline healing does not change frozen statistics')
+UI.Set('stats','name','5s DPS');callback('stats','save','onClick')
+local five=mod.history.rows[#mod.history.rows]
+assert(five.testDuration==5 and five.timerCompleted and five.seconds==5 and five.dps==300)
+assert(mod.state.paused and not mod.state.completed,'Saving arms a separate paused next run')
+UI.Set('stats','testDuration',10);callback('stats','beginTest','onClick')
+now=301;hit(timed,0,100,player);now=302;callback('stats','pause','onClick')
+now=350;mod.tick();assert(UI.labels['stats.countdown']:find('9.0',1,true))
+callback('stats','pause','onClick')
+now=359;mod.tick();assert(mod.state.completed and mod.state.total==0 and mod.state.shachiTotal==100)
+UI.Set('stats','name','10s Shachi');callback('stats','save','onClick')
+local ten=mod.history.rows[#mod.history.rows]
+assert(ten.seconds==10 and ten.shachiDps==10 and ten.timerCompleted)
+UI.Set('stats','testDuration',30);callback('stats','beginTest','onClick')
+now=400;hit(timed,900,300,player);now=432;mod.tick()
+assert(mod.state.completed and UI.labels['stats.average']:find('30.00',1,true))
+UI.Set('stats','testDuration',0);callback('stats','beginTest','onClick')
+now=500;hit(timed,1000,100,player);now=700;mod.tick()
+assert(not mod.state.completed and UI.labels['stats.countdown']=='当前计时：不限时')
+callback('dummy','language','onChange','en');mod.tick()
+assert(UI.labels['stats.countdown']=='Current timer: unlimited'and UI.Get('stats','testDuration')==0)
+for _,item in ipairs(UI.sections.stats.items)do
+ if item.id=='testDuration'or item.id=='beginTest'then
+  assert(not item.label:find('[\128-\255]'),'Timer control must be translated: '..item.label)
+ end
+end
 dofile=realDofile
 print('PASS: real menu callbacks; health/DPS; pause/resume; saved metadata; failed-save retention; next-segment pause; comparisons/delete; lifecycle cleanup')

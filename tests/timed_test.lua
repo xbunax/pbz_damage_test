@@ -1,0 +1,60 @@
+local root=arg[1]
+local S=dofile(root..'/PBZTrainingDummy/Scripts/session.lua')
+for _,seconds in ipairs({5,10,30})do
+ local s=S.new();S.reset(s,seconds);S.attach(s,'target','world')
+ local waiting=S.snapshot(s,1000)
+ assert(waiting.seconds==0 and waiting.remaining==seconds and not waiting.completed)
+ assert(not S.record(s,'other',999,nil,1000,999)and not s.started)
+ assert(S.record(s,'target',0,nil,1000,50))
+ assert(S.record(s,'target',100,nil,1000+seconds-.001,100))
+ assert(not S.record(s,'target',99999,nil,1000+seconds,99999),'Deadline itself is outside the damage window')
+ local result=S.snapshot(s,10000)
+ assert(result.completed and result.seconds==seconds and result.remaining==0 and result.events==2)
+ assert(result.total==100 and result.shachiTotal==150 and result.dps==100/seconds and result.shachiDps==150/seconds)
+ assert(not S.pause(s,10001)and not S.resume(s,10001))
+ S.detach(s,10002);assert(S.snapshot(s,20000).seconds==seconds)
+ S.reset(s);assert(s.testDuration==seconds and not s.completed and s.events==0)
+end
+local s=S.new();S.reset(s,10);S.attach(s,'target','world')
+assert(S.record(s,'target',100,nil,10,50)and S.pause(s,12))
+assert(S.snapshot(s,99).remaining==8 and not S.advance(s,100))
+assert(S.resume(s,112)and S.record(s,'target',200,nil,119.999,50))
+assert(not S.record(s,'target',999,nil,120,999))
+assert(S.snapshot(s,1000).seconds==10 and S.snapshot(s,1000).dps==30)
+S.reset(s,5);assert(S.pause(s,1)and S.resume(s,100))
+assert(S.record(s,'target',100,nil,101))
+assert(S.snapshot(s,105).remaining==1 and S.advance(s,106))
+S.reset(s,5);assert(S.record(s,'target',100,nil,200));S.detach(s,202)
+local early=S.snapshot(s,10000)
+assert(early.seconds==2 and early.remaining==3 and not early.completed and early.dps==50)
+S.attach(s,'target','world');S.reset(s,30);assert(S.record(s,'target',90,nil,300))
+assert(S.advance(s,1000)and S.snapshot(s,1001).seconds==30,'Late engine ticks cannot inflate the denominator')
+S.reset(s,0);assert(S.record(s,'target',100,nil,1)and S.record(s,'target',100,nil,100))
+assert(not S.snapshot(s,1000).completed and S.snapshot(s,1000).remaining==nil)
+local total=s.total
+assert(not pcall(S.reset,s,7)and s.total==total,'Invalid presets do not clear a run')
+
+package.loaded['PBZTrainingDummy.UEHelpers']={}
+dofile(root..'/PBZTrainingDummy/Scripts/vendor/ModMenu.lua')
+local json=require('PBZDummyMenu.store.json')
+local codec={Encode=json.Encode,Decode=json.DecodeObject}
+local Segments=dofile(root..'/PBZTrainingDummy/Scripts/segments.lua')
+local fs=dofile(root..'/tests/memory_fs.lua')
+local store=Segments.new('timed.json',codec,fs)
+S.reset(s,5);assert(S.record(s,'target',500,nil,10,250))
+local meta={targetId='gold',targetName='Dummy',maxHP=10000,maxShachi=3000,mode='hold',healthPolicy='custom',shachiPolicy='native',testDuration=5}
+local row=assert(store:add(S.snapshot(s,99),meta,'5s'))
+assert(row.seconds==5 and row.dps==100 and row.shachiDps==50 and row.testDuration==5 and row.timerCompleted)
+local reload=Segments.new('timed.json',codec,fs)
+assert(not reload.blocked and reload:get(row.id).timerCompleted)
+assert(Segments.describe(row):find('5 秒',1,true))
+meta.testDuration=10
+assert(not reload:add(S.snapshot(s,100),meta,'mismatched metadata'))
+S.reset(s,10);assert(S.record(s,'target',1000,nil,100,500))
+local ten=assert(reload:add(S.snapshot(s,200),meta,'10s'))
+assert(Segments.compare(row,ten):find('不同',1,true))
+local bad=json.DecodeObject(fs.files['timed.json'])
+bad.records[1].seconds=4;bad.records[1].dps=125;bad.records[1].shachiDps=62.5
+fs.files['timed.json']=json.Encode(bad);fs.files['timed.json.bak']=nil
+assert(Segments.new('timed.json',codec,fs).blocked,'Completed timer rows must use their preset denominator')
+print('PASS: 5/10/30s deadlines, pause/resume, delayed ticks, early removal, continuous mode, saved timing metadata and validation')
